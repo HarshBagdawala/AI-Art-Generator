@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { waitUntil } from '@vercel/functions';
 import { detectLanguage } from '@/lib/mistral';
 import { enhancePrompt, speechToText } from '@/lib/groq';
 import { generateImage } from '@/lib/pollinations';
@@ -180,8 +181,9 @@ export async function POST(req: NextRequest) {
   const payload = await req.json();
   console.log('📩 Webhook received:', JSON.stringify(payload).substring(0, 200));
 
-  // Fire-and-forget: process in background
-  processMessage(payload).catch((err) => console.error('Background error:', err));
+  // waitUntil keeps the Vercel function alive until processMessage finishes,
+  // while still returning the 200 response to 11za immediately
+  waitUntil(processMessage(payload));
 
   // Return immediately so 11za doesn't timeout
   return NextResponse.json({ ok: true });
