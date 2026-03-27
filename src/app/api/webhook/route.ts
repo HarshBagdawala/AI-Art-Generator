@@ -1,35 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { detectLanguage } from '@/lib/mistral';
-import { enhancePrompt } from '@/lib/groq';
+import { enhancePrompt, speechToText } from '@/lib/groq';
 import { generateImage } from '@/lib/pollinations';
 import { sendWhatsAppImage, sendWhatsAppText } from '@/lib/elza';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-/*
-11za Webhook Setup:
-1. Login to app-v2.11za.in
-2. Go to Settings → Webhooks
-3. Add webhook URL: https://your-domain.vercel.app/api/webhook
-4. Select events: message.received
-5. Copy webhook secret to .env ELZA_WEBHOOK_SECRET
-*/
+import { supabase } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   
   try {
-    const body = await req.json();
+    const payload = await req.json();
     
-    // Extract message from 11za webhook payload
-    // Handle different payload structures from 11za
-    const phoneNumber = body?.from || body?.sender?.phone || body?.data?.from;
-    const messageText = (body?.message?.text || body?.text?.body || body?.data?.message?.text || '').trim();
-    const senderName = body?.sender?.name || body?.data?.sender?.name || 'User';
+    // 1️⃣ LOG ALL INCOMING WEBHOOKS TO SUPABASE
+    await supabase.from("whatsapp_messages").insert([
+      {
+        message_id: payload.messageId,
+        channel: payload.channel,
+        from_number: payload.from,
+        to_number: payload.to,
+        received_at: payload.receivedAt,
+        content_type: payload.content?.contentType,
+        content_text: payload.content?.text || null,
+        sender_name: payload.whatsapp?.senderName || null,
+        event_type: payload.event,
+        raw_payload: payload,
+      },
+    ]);
+ 
+    // Handle only Mobile Originated Messages (MoMessage)
+    if (payload.event !== "MoMessage") {
+      return NextResponse.json({ success: true });
+    }
+ 
+    /* --------------------------------------------------
+     * 2️⃣ NORMALIZE MESSAGE (Handle Text & Voice)
+     * -------------------------------------------------- */
+    let messageText: string | null = null;
+    let mediaUrl: string | null = null;
+ 
+    if (payload.content?.contentType === "text") {
+      messageText = payload.content.text?.trim() || null;
+    }
+ 
+    if (payload.content?.contentType === "media") {
+      mediaUrl = payload.content.media?.url || null;
+ 
+      // Handle Voice Messages
+      if (
+        payload.content.media?.type === "voice" ||
+        payload.content.media?.type === "audio"
+      ) {
+        console.log("🎤 Voice message detected, starting STT...");
+        if (mediaUrl) {
+          const stt = await speechToText(mediaUrl);
+          messageText = stt?.text?.trim() || null;
+          console.log("📝 Transcription result:", messageText);
+        }
+      }
+    }
+
+    const phoneNumber = payload.from;
+    const senderName = payload.whatsapp?.senderName || 'User';
     
     if (!phoneNumber || !messageText) {
       return NextResponse.json({ status: 'ignored' });
@@ -42,7 +73,7 @@ export async function POST(req: NextRequest) {
       await sendWhatsAppText(
         phoneNumber,
         `🎨 *ArtBot Help* 🎨\n\n` +
-        `Simply send any text to generate an AI image!\n\n` +
+        `Simply send any text or voice message to generate an AI image!\n\n` +
         `*Features:*\n` +
         `• *Multilingual:* Type in Hindi, English, etc.\n` +
         `• *Negative Prompts:* Add "NO: things you don't want" at the end.\n` +
@@ -61,7 +92,7 @@ export async function POST(req: NextRequest) {
         .limit(3);
 
       if (error || !history || history.length === 0) {
-        await sendWhatsAppText(phoneNumber, "You haven't generated any art yet! Send me a prompt to start. 🎨");
+        await sendWhatsAppText(phoneNumber, "You haven't generated any art yet! Send me a prompt or voice note to start. 🎨");
       } else {
         await sendWhatsAppText(phoneNumber, "📜 *Your Recent Art History:*");
         for (const item of history) {
@@ -116,7 +147,7 @@ export async function POST(req: NextRequest) {
     const imageUrl = await generateImage(enhancedPrompt);
 
     // Step 5: Send image back on WhatsApp
-    const caption = `✅ *Your AI Art is ready!*\n\n🖼️ *Original:* ${cleanPrompt}\n✨ *Enhanced:* ${enhancedPrompt.substring(0, 100)}...\n\n_Send another prompt or "help"!_ 🎨`;
+    const caption = `✅ *Your AI Art is ready!*\n\n🖼️ *Original:* ${cleanPrompt}\n✨ *Enhanced:* ${enhancedPrompt.substring(0, 100)}...\n\n_Send another prompt or voice message!_ 🎨`;
     
     await sendWhatsAppImage(phoneNumber, imageUrl, caption);
 
@@ -144,7 +175,7 @@ export async function POST(req: NextRequest) {
       processing_time_ms: Date.now() - startTime,
     });
 
-    // Update user count - fallback to incrementing total_images_generated if RPC is not available
+    // Update user count
     const { data: existingUser } = await supabase
         .from('users')
         .select('total_images_generated')
@@ -160,31 +191,21 @@ export async function POST(req: NextRequest) {
 
     // Update Daily Stats
     const today = new Date().toISOString().split('T')[0];
-    
-    const { data: dailyStat } = await supabase
-      .from('daily_stats')
-      .select('*')
-      .eq('date', today)
-      .single();
+    const { data: dailyStat } = await supabase.from('daily_stats').select('*').eq('date', today).single();
 
     if (dailyStat) {
-      await supabase
-        .from('daily_stats')
-        .update({
-          total_requests: dailyStat.total_requests + 1,
-          successful_generations: dailyStat.successful_generations + 1
-        })
-        .eq('date', today);
+      await supabase.from('daily_stats').update({
+        total_requests: dailyStat.total_requests + 1,
+        successful_generations: dailyStat.successful_generations + 1
+      }).eq('date', today);
     } else {
-      await supabase
-        .from('daily_stats')
-        .insert({
-          date: today,
-          total_requests: 1,
-          successful_generations: 1,
-          failed_generations: 0,
-          unique_users: 1 // Naive unique_users increment, actual implementation might need a distinct check
-        });
+      await supabase.from('daily_stats').insert({
+        date: today,
+        total_requests: 1,
+        successful_generations: 1,
+        failed_generations: 0,
+        unique_users: 1
+      });
     }
 
     return NextResponse.json({ status: 'success' });
@@ -196,5 +217,5 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({ status: 'Webhook is active ✅' });
+  return NextResponse.json({ status: 'Webhook is active ✅ (Advanced Version)' });
 }
