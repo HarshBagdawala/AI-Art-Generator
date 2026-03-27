@@ -20,9 +20,18 @@ export async function sendWhatsAppImage(
         caption: caption
       }),
     });
-    return response.ok;
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('11za Send Image Failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorData
+      });
+      return false;
+    }
+    return true;
   } catch (err) {
-    console.error('11za Send Image Error:', err);
+    console.error('11za Send Image Exception:', err);
     return false;
   }
 }
@@ -36,18 +45,28 @@ export async function sendWhatsAppText(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.ELZA_API_KEY}`,
-        'Instance-Id': process.env.ELEVEN_ZA_PHONE_NUMBER_ID || '',
       },
       body: JSON.stringify({
-        to: phoneNumber,
-        type: 'text',
-        text: { body: message }
+        sendto: phoneNumber,
+        authToken: process.env.ELZA_API_KEY,
+        originWebsite: "https://11za.com",
+        contentType: "text",
+        body: message
       }),
     });
-    return response.ok;
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('11za Send Text Failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorData
+      });
+      return false;
+    }
+    return true;
   } catch (err) {
-    console.error('11za Send Text Error:', err);
+    console.error('11za Send Text Exception:', err);
     return false;
   }
 }
