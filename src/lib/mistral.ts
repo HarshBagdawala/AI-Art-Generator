@@ -11,7 +11,7 @@ export async function detectLanguage(text: string): Promise<string> {
         content: `Detect the language of this text and return ONLY the language name in English (e.g., Hindi, English, Hinglish, Gujarati, etc.): "${text}"`
       }
     ],
-    max_tokens: 20,
+    maxTokens: 20,
   });
   
   return (response.choices && response.choices[0]?.message?.content?.toString()?.trim()) || 'English';
