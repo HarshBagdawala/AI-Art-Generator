@@ -14,10 +14,11 @@ export async function sendWhatsAppImage(
       body: JSON.stringify({
         sendto: phoneNumber,
         authToken: process.env.ELZA_API_KEY,
-        originWebsite: "",
+        originWebsite: "https://11za.com/",
         contentType: "image",
         myfile: imageUrl,
-        caption: caption
+        myfilename: "art.jpg",
+        text: caption
       }),
     });
     if (!response.ok) {
@@ -49,7 +50,7 @@ export async function sendWhatsAppText(
       body: JSON.stringify({
         sendto: phoneNumber,
         authToken: process.env.ELZA_API_KEY,
-        originWebsite: "",
+        originWebsite: "https://11za.com",
         contentType: "text",
         body: message
       }),
