@@ -6,7 +6,7 @@ export async function sendWhatsAppImage(
   caption: string
 ): Promise<boolean> {
   try {
-    const response = await fetch(`${ELZA_BASE_URL}/send-message`, {
+    const response = await fetch(`${ELZA_BASE_URL}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,7 +41,7 @@ export async function sendWhatsAppText(
   message: string
 ): Promise<boolean> {
   try {
-    const response = await fetch(`${ELZA_BASE_URL}/send-message`, {
+    const response = await fetch(`${ELZA_BASE_URL}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
