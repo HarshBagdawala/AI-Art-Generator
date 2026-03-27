@@ -17,7 +17,7 @@ export async function enhancePrompt(originalPrompt: string, language: string): P
       { role: 'user', content: `Original prompt (${language}): ${originalPrompt}` }
     ],
     model: 'llama-3.1-8b-instant',
-    temperature: 0.7,
+    temperature: 0.3,
     max_tokens: 300,
   });
 
@@ -31,7 +31,7 @@ export async function speechToText(audioUrl: string): Promise<{ text: string }> 
     // we might need to handle the stream or use a temporary file.
     // For this implementation, we assume the Whisper API can handle the translation 
     // from a buffer or we use the Groq SDK's transcription method.
-    
+
     // Step 1: Download audio
     const audioResponse = await fetch(audioUrl);
     const audioBlob = await audioResponse.blob();
