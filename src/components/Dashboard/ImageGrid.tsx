@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ExternalLink, Clock, Phone } from 'lucide-react';
 
@@ -35,16 +35,18 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images }) => {
           className="group relative bg-[#13131A] rounded-2xl border border-white/10 overflow-hidden hover:border-purple-500/50 transition-all duration-300"
         >
           <div className="aspect-square overflow-hidden relative">
-            <img 
+            <Image 
               src={img.image_url} 
               alt={img.original_prompt}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              fill
+              className="object-cover group-hover:scale-110 transition-transform duration-500"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
             />
             
             {/* Overlay on hover */}
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
               <p className="text-white text-xs line-clamp-3 mb-2 font-medium italic">
-                "{img.enhanced_prompt}"
+                &quot;{img.enhanced_prompt}&quot;
               </p>
               <div className="flex justify-between items-center">
                 <span className="text-purple-400 text-[10px] uppercase font-bold tracking-widest flex items-center">

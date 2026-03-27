@@ -50,7 +50,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
                   </span>
                 </td>
                 <td className="px-6 py-4 max-w-xs truncate">
-                  <span className="text-gray-400 text-sm italic">"{item.original_prompt}"</span>
+                  <span className="text-gray-400 text-sm italic">&quot;{item.original_prompt}&quot;</span>
                 </td>
                 <td className="px-6 py-4">
                   <span className="bg-purple-500/10 text-purple-400 text-[10px] px-2 py-1 rounded-full border border-purple-500/20 font-bold uppercase tracking-wider">
