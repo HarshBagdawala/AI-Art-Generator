@@ -3,13 +3,11 @@ import Groq from 'groq-sdk';
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function enhancePrompt(originalPrompt: string, language: string): Promise<string> {
-  const systemPrompt = `You are an expert AI image prompt engineer. 
-  Your job is to:
-  1. If the input is in Hindi/Hinglish/any non-English language, translate it to English first
-  2. Enhance the prompt to be more detailed, vivid, and suitable for AI image generation
-  3. Add artistic style, lighting, quality descriptors
-  4. Keep it under 200 words
-  5. Return ONLY the enhanced English prompt, nothing else`;
+  const systemPrompt = `You are an AI image prompt engineer. Your job is to:
+  1. Translate any non-English input (Hindi, Hinglish, Gujarati, etc.) to English
+  2. Enhance the prompt with vivid detail, artistic style, lighting, and quality descriptors
+  3. Keep the output under 150 words
+  CRITICAL: Return ONLY the enhanced prompt text. No labels, no prefixes like 'Enhanced Prompt:', no explanations. Just the raw prompt.`;
 
   const completion = await groq.chat.completions.create({
     messages: [
@@ -21,7 +19,15 @@ export async function enhancePrompt(originalPrompt: string, language: string): P
     max_tokens: 300,
   });
 
-  return completion.choices[0]?.message?.content?.trim() || originalPrompt;
+  const raw = completion.choices[0]?.message?.content?.trim() || originalPrompt;
+
+  // Strip any prefix the model may add (e.g., "Enhanced Prompt:", "Here is...")
+  const cleaned = raw
+    .replace(/^(enhanced prompt|prompt|here is.*?:|output)[:\s]*/i, '')
+    .replace(/^[\n\r]+/, '')
+    .trim();
+
+  return cleaned || originalPrompt;
 }
 
 export async function speechToText(audioUrl: string): Promise<{ text: string }> {
