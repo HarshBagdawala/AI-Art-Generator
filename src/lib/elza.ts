@@ -1,4 +1,4 @@
-const ELZA_BASE_URL = 'https://app-v2.11za.in/api';
+const ELZA_BASE_URL = 'https://api.11za.in/apis/sendMessage/sendMessages';
 
 export async function sendWhatsAppImage(
   phoneNumber: string,
@@ -10,16 +10,14 @@ export async function sendWhatsAppImage(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.ELZA_API_KEY}`,
-        'Instance-Id': process.env.ELEVEN_ZA_PHONE_NUMBER_ID || '',
       },
       body: JSON.stringify({
-        to: phoneNumber,
-        type: 'image',
-        image: {
-          url: imageUrl,
-          caption: caption,
-        }
+        sendto: phoneNumber,
+        authToken: process.env.ELZA_API_KEY,
+        originWebsite: "https://11za.com",
+        contentType: "image",
+        myfile: imageUrl,
+        caption: caption
       }),
     });
     return response.ok;
