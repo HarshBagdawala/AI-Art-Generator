@@ -16,7 +16,7 @@ export async function enhancePrompt(originalPrompt: string, language: string): P
       { role: 'system', content: systemPrompt },
       { role: 'user', content: `Original prompt (${language}): ${originalPrompt}` }
     ],
-    model: 'llama-3.3-70b-versatile',
+    model: 'llama-3.1-8b-instant',
     temperature: 0.7,
     max_tokens: 300,
   });
