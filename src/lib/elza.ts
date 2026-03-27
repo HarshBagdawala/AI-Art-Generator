@@ -5,6 +5,7 @@ export async function sendWhatsAppImage(
   imageUrl: string,
   caption: string
 ): Promise<boolean> {
+  console.log("imageUrl:" + imageUrl)
   try {
     const response = await fetch(`${ELZA_BASE_URL}`, {
       method: 'POST',
@@ -17,7 +18,6 @@ export async function sendWhatsAppImage(
         originWebsite: "https://11za.com",
         contentType: "image",
         myfile: imageUrl,
-        myfilename: "art.jpg",
         text: caption
       }),
     });
