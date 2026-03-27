@@ -14,7 +14,7 @@ export async function sendWhatsAppImage(
       body: JSON.stringify({
         sendto: phoneNumber,
         authToken: process.env.ELZA_API_KEY,
-        originWebsite: "https://11za.com",
+        originWebsite: "11za.com",
         contentType: "image",
         myfile: imageUrl,
         caption: caption
@@ -49,7 +49,7 @@ export async function sendWhatsAppText(
       body: JSON.stringify({
         sendto: phoneNumber,
         authToken: process.env.ELZA_API_KEY,
-        originWebsite: "https://11za.com",
+        originWebsite: "11za.com",
         contentType: "text",
         body: message
       }),
