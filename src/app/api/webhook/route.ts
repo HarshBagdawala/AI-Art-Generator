@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { detectLanguage } from '@/lib/mistral';
 import { enhancePrompt, speechToText } from '@/lib/groq';
-import { generateImage } from '@/lib/pollinations';
+import { generateImageStability } from '@/lib/stability';
 import { sendWhatsAppImage, sendWhatsAppText } from '@/lib/elza';
 import { supabase } from '@/lib/supabase';
 
@@ -120,7 +120,39 @@ async function processMessage(payload: Record<string, unknown>) {
     if (negativePrompt) finalPrompt += ` (Avoid: ${negativePrompt})`;
 
     const enhancedPrompt = await enhancePrompt(finalPrompt, language);
-    const imageUrl = await generateImage(enhancedPrompt);
+    
+    // 6️⃣ Generate image with Stability AI
+    const imageBuffer = await generateImageStability(enhancedPrompt);
+
+    // 7️⃣ Upload to Supabase Storage
+    const fileName = `art_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
+    const bucketName = 'generated-images';
+
+    // Ensure bucket exists (best effort)
+    try {
+      await supabase.storage.createBucket(bucketName, { public: true });
+    } catch (e) {
+      // Bucket might already exist
+    }
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, imageBuffer, {
+        contentType: 'image/png',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('❌ Supabase Upload Error:', uploadError);
+      throw new Error(`Failed to upload image: ${uploadError.message}`);
+    }
+
+    // Get Public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+
+    const imageUrl = publicUrl;
 
     // ── SEND IMAGE ────────────────────────────────────────────
     const caption = `✅ *Your AI Art is ready!*\n\n🖼️ *Prompt:* ${cleanPrompt}\n✨ *Enhanced:* ${enhancedPrompt.substring(0, 100)}...\n\n_Send another prompt or voice message!_ 🎨`;
@@ -143,7 +175,7 @@ async function processMessage(payload: Record<string, unknown>) {
       detected_language: language,
       enhanced_prompt: enhancedPrompt,
       image_url: imageUrl,
-      pollinations_url: imageUrl,
+      stability_url: imageUrl,
       status: 'success',
       processing_time_ms: Date.now() - startTime,
     });

@@ -16,9 +16,10 @@ CREATE TABLE image_generations (
   original_prompt TEXT NOT NULL,
   detected_language TEXT DEFAULT 'en',
   enhanced_prompt TEXT NOT NULL,
-  image_url TEXT NOT NULL,
-  pollinations_url TEXT NOT NULL,
-  status TEXT DEFAULT 'success', -- success | failed | pending
+   image_url TEXT NOT NULL,
+   pollinations_url TEXT,
+   stability_url TEXT,
+   status TEXT DEFAULT 'success', -- success | failed | pending
   processing_time_ms INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
